@@ -120,4 +120,33 @@ if start:
         الأوصاف الوظيفية:
         {job_descriptions}
 
-        أعد كتابة السيرة الذاتية كنص عربي
+        أعد كتابة السيرة الذاتية كنص عربي منسق فقط.
+        """
+
+        st.info("جاري تحسين السيرة الذاتية عبر Groq…")
+
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            temperature=0.1,
+        )
+
+        final_cv_text = response.choices[0].message.content
+
+
+        st.success("تم إنشاء السيرة الذاتية المحسّنة!")
+        st.subheader("السيرة الذاتية بعد التحسين")
+        st.text_area("CV النهائي", final_cv_text, height=500)
+
+
+        pdf_bytes = generate_pdf_from_text(final_cv_text)
+
+        st.download_button(
+            label="تحميل ملف PDF النهائي",
+            data=pdf_bytes,
+            file_name="optimized_cv.pdf",
+            mime="application/pdf"
+        )
