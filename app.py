@@ -4,20 +4,12 @@ import tempfile
 import pdfplumber
 from groq import Groq
 from weasyprint import HTML
-import re
 
 client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
 def extract_pdf_text(file):
     with pdfplumber.open(file) as pdf:
         return "\n".join([page.extract_text() or "" for page in pdf.pages])
-
-def clean_html_blocks(text):
-    # يحذف وسوم HTML ويترك المحتوى فقط
-    text = re.sub(r'<div dir="rtl">', '', text)
-    text = re.sub(r'<div dir="ltr">', '', text)
-    text = re.sub(r'</div>', '', text)
-    return text.strip()
 
 def generate_pdf_from_text(text_content):
     html_template = f"""
@@ -49,7 +41,7 @@ def generate_pdf_from_text(text_content):
         return f.read()
 
 st.set_page_config(page_title="PassATS AI", layout="wide")
-st.title("PassATS AI — ATS CV Optimizer")
+st.title("PassATS AI — نظام تحسين السيرة الذاتية المتوافق مع ATS")
 
 uploaded_pdf = st.file_uploader("ارفع السيرة الذاتية (PDF فقط)", type=["pdf"])
 
@@ -82,10 +74,9 @@ if start:
         أنت خبير عالمي في كتابة السير الذاتية المتوافقة مع ATS.
 
         قواعد اللغة:
-        - إذا كان القسم عربي، اكتبه داخل:
-          <div dir="rtl"> ... </div>
-        - إذا كان القسم إنجليزي، اكتبه داخل:
-          <div dir="ltr"> ... </div>
+        - اكتب العربي بشكل طبيعي وواضح بدون أي تكسير أو انعكاس.
+        - اكتب العربي من اليمين إلى اليسار بشكل صحيح.
+        - إذا كان القسم إنجليزي، اكتبه إنجليزي طبيعي.
         - ممنوع دمج لغتين داخل نفس الجملة.
         - إذا وجدت كلمات عربية وإنجليزية متجاورة، افصلها إلى سطرين.
         - ممنوع الترجمة إلا إذا كان النص الأصلي غير مفهوم.
@@ -102,6 +93,7 @@ if start:
         8) الشهادات
 
         قواعد التنسيق:
+        - لا تستخدم HTML.
         - لا تستخدم Markdown.
         - استخدم الشرطات "-" للقوائم فقط.
         """
@@ -119,7 +111,7 @@ if start:
         st.info("جاري تحسين السيرة الذاتية عبر Groq…")
 
         response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
+            model="gemma-2-27b-it",    
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
@@ -127,8 +119,7 @@ if start:
             temperature=0.1,
         )
 
-        raw_output = response.choices[0].message.content
-        final_cv_text = clean_html_blocks(raw_output)
+        final_cv_text = response.choices[0].message.content
 
         st.success("تم إنشاء السيرة الذاتية المحسّنة!")
         st.subheader("السيرة الذاتية بعد التحسين")
