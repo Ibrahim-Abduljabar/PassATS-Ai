@@ -1,5 +1,5 @@
 streamlit
 groq
 python-dotenv
-xhtml2pdf
 pdfplumber
+weasyprint
