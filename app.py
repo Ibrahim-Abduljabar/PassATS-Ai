@@ -4,12 +4,20 @@ import tempfile
 import pdfplumber
 from groq import Groq
 from weasyprint import HTML
+import re
 
 client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
 def extract_pdf_text(file):
     with pdfplumber.open(file) as pdf:
         return "\n".join([page.extract_text() or "" for page in pdf.pages])
+
+def clean_html_blocks(text):
+    # يحذف وسوم HTML ويترك المحتوى فقط
+    text = re.sub(r'<div dir="rtl">', '', text)
+    text = re.sub(r'<div dir="ltr">', '', text)
+    text = re.sub(r'</div>', '', text)
+    return text.strip()
 
 def generate_pdf_from_text(text_content):
     html_template = f"""
@@ -24,14 +32,6 @@ def generate_pdf_from_text(text_content):
                 line-height: 1.8;
                 font-size: 16px;
                 padding: 30px;
-            }}
-            h2 {{
-                font-size: 22px;
-                margin-top: 25px;
-                margin-bottom: 10px;
-            }}
-            p, li {{
-                margin-bottom: 10px;
             }}
         </style>
     </head>
@@ -82,16 +82,15 @@ if start:
         أنت خبير عالمي في كتابة السير الذاتية المتوافقة مع ATS.
 
         قواعد اللغة:
-        - إذا كان القسم عربي، اكتبه عربي طبيعي بدون تشنج.
-        - إذا كان القسم إنجليزي، اكتبه إنجليزي طبيعي بدون تشنج.
+        - إذا كان القسم عربي، اكتبه داخل:
+          <div dir="rtl"> ... </div>
+        - إذا كان القسم إنجليزي، اكتبه داخل:
+          <div dir="ltr"> ... </div>
         - ممنوع دمج لغتين داخل نفس الجملة.
+        - إذا وجدت كلمات عربية وإنجليزية متجاورة، افصلها إلى سطرين.
         - ممنوع الترجمة إلا إذا كان النص الأصلي غير مفهوم.
         - حافظ على اللغة الأصلية لكل قسم كما جاءت.
-        - المصطلحات التقنية الإنجليزية تبقى كما هي داخل الأقسام الإنجليزية.
-        - لا تغيّر لغة القسم إلا إذا طلب المستخدم ذلك.
-        - إذا وجدت كلمات عربية وإنجليزية متجاورة داخل نفس السطر، افصلها إلى سطرين مستقلين بدون تعديل اللغة أو الترجمة.
-        -اكتب الكلمه العربيه من اليمين الى اليسار و حتى النص ذاتو العربي
-        - اذا ظهر النص العربي باتجاه خاطى عدله بحيث ان يكون من اليمين الى اليسار
+
         الهيكل المطلوب:
         1) المعلومات الشخصية
         2) الملخص المهني
@@ -103,10 +102,8 @@ if start:
         8) الشهادات
 
         قواعد التنسيق:
-        - لا تستخدم HTML.
         - لا تستخدم Markdown.
         - استخدم الشرطات "-" للقوائم فقط.
-        - اجعل النص نظيفاً، احترافياً، ومنظماً.
         """
 
         user_prompt = f"""
@@ -130,7 +127,8 @@ if start:
             temperature=0.1,
         )
 
-        final_cv_text = response.choices[0].message.content
+        raw_output = response.choices[0].message.content
+        final_cv_text = clean_html_blocks(raw_output)
 
         st.success("تم إنشاء السيرة الذاتية المحسّنة!")
         st.subheader("السيرة الذاتية بعد التحسين")
