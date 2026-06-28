@@ -5,11 +5,14 @@ import pdfplumber
 from groq import Groq
 from weasyprint import HTML
 
+
 client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+
 
 def extract_pdf_text(file):
     with pdfplumber.open(file) as pdf:
         return "\n".join([page.extract_text() or "" for page in pdf.pages])
+
 
 def generate_pdf_from_text(text_content):
     html_template = f"""
@@ -21,20 +24,17 @@ def generate_pdf_from_text(text_content):
                 font-family: Arial, sans-serif;
                 direction: rtl;
                 text-align: right;
-                line-height: 1.7;
-                font-size: 15px;
-                padding: 25px;
+                line-height: 1.8;
+                font-size: 16px;
+                padding: 30px;
             }}
             h2 {{
+                font-size: 22px;
                 margin-top: 25px;
                 margin-bottom: 10px;
-                font-size: 20px;
             }}
-            p {{
-                margin-bottom: 12px;
-            }}
-            ul {{
-                margin-bottom: 15px;
+            p, li {{
+                margin-bottom: 10px;
             }}
         </style>
     </head>
@@ -51,10 +51,12 @@ def generate_pdf_from_text(text_content):
     with open(path, "rb") as f:
         return f.read()
 
-st.set_page_config(page_title="PassATS AI", layout="wide")
-st.title("PassATS AI — ATS CV Optimizer")
 
-uploaded_pdf = st.file_uploader("ارفع ملف السيرة الذاتية (PDF فقط)", type=["pdf"])
+st.set_page_config(page_title="PassATS AI", layout="wide")
+st.title("PassATS AI — نظام تحسين السيرة الذاتية المتوافق مع ATS")
+
+uploaded_pdf = st.file_uploader("ارفع السيرة الذاتية (PDF فقط)", type=["pdf"])
+
 
 if "job_desc_list" not in st.session_state:
     st.session_state.job_desc_list = [""]
@@ -72,7 +74,9 @@ for i in range(len(st.session_state.job_desc_list)):
 
 st.button("➕ أضف وصف وظيفي آخر", on_click=add_job_desc)
 
+
 start = st.button("ابدأ تحسين السيرة الذاتية الآن")
+
 
 if start:
     if not uploaded_pdf:
@@ -81,13 +85,32 @@ if start:
         cv_text = extract_pdf_text(uploaded_pdf)
         job_descriptions = "\n\n---\n\n".join(st.session_state.job_desc_list)
 
+
         system_prompt = """
         أنت خبير عالمي في كتابة السير الذاتية المتوافقة مع ATS.
-        أعد صياغة السيرة الذاتية كنص منسق فقط.
-        لا تستخدم HTML.
-        لا تستخدم Markdown.
-        لا تستخدم رموز برمجية.
-        فقط نص CV احترافي جاهز للقراءة.
+        اكتب السيرة الذاتية باللغة العربية الفصحى فقط.
+        ممنوع استخدام أي كلمة إنجليزية إطلاقاً.
+        ممنوع دمج لغتين في نفس السطر.
+        كل النص عربي 100%.
+
+        استخدم الهيكل التالي فقط:
+
+        1) المعلومات الشخصية
+        2) الملخص المهني
+        3) المهارات التقنية
+        4) الخبرات العملية
+        5) المشاريع
+        6) التعليم
+        7) اللغات
+        8) الشهادات
+
+        قواعد صارمة:
+        - لا تستخدم HTML.
+        - لا تستخدم Markdown.
+        - لا تستخدم رموز برمجية.
+        - لا تستخدم رموز زخرفية.
+        - استخدم الشرطات "-" فقط للقوائم.
+        - اجعل النص نظيفاً، احترافياً، موحد اللغة، ومنظماً.
         """
 
         user_prompt = f"""
@@ -97,32 +120,4 @@ if start:
         الأوصاف الوظيفية:
         {job_descriptions}
 
-        أعد كتابة السيرة الذاتية كنص منسق فقط.
-        """
-
-        st.info("جاري المعالجة عبر Groq…")
-
-        response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            temperature=0.1,
-        )
-
-        final_cv_text = response.choices[0].message.content
-
-        st.success("تم إنشاء السيرة الذاتية المحسّنة!")
-
-        st.subheader("السيرة الذاتية بعد التحسين")
-        st.text_area("CV النهائي", final_cv_text, height=500)
-
-        pdf_bytes = generate_pdf_from_text(final_cv_text)
-
-        st.download_button(
-            label="تحميل ملف PDF النهائي",
-            data=pdf_bytes,
-            file_name="optimized_cv.pdf",
-            mime="application/pdf"
-        )
+        أعد كتابة السيرة الذاتية كنص عربي
