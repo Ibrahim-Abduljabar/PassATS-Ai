@@ -11,9 +11,16 @@ def extract_pdf_text(file):
     with pdfplumber.open(file) as pdf:
         return "\n".join([page.extract_text() or "" for page in pdf.pages])
 
-def html_to_pdf_bytes(html_content):
+def text_to_pdf_bytes(text_content):
+    html_template = f"""
+    <html>
+    <body style="font-family: Arial; line-height: 1.6; font-size: 15px; direction: rtl; text-align: right;">
+    <pre style="white-space: pre-wrap;">{text_content}</pre>
+    </body>
+    </html>
+    """
     with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
-        HTML(string=html_content).write_pdf(tmp.name)
+        HTML(string=html_template).write_pdf(tmp.name)
         path = tmp.name
     with open(path, "rb") as f:
         return f.read()
@@ -50,12 +57,11 @@ if start:
 
         system_prompt = """
         أنت خبير عالمي في كتابة السير الذاتية المتوافقة مع ATS.
-        أعد صياغة السيرة الذاتية لتتوافق مع جميع الأوصاف الوظيفية.
-        أعد الإخراج بصيغة HTML فقط.
-        استخدم Inline CSS فقط.
+        أعد صياغة السيرة الذاتية كنص منسق فقط.
+        لا تستخدم HTML.
         لا تستخدم Markdown.
-        لا تكتب أي نص خارج HTML.
-        اجعل التصميم احترافي، أكاديمي، منظم، وخفيف.
+        لا تستخدم رموز برمجية.
+        فقط نص CV احترافي جاهز للقراءة.
         """
 
         user_prompt = f"""
@@ -65,7 +71,7 @@ if start:
         الأوصاف الوظيفية:
         {job_descriptions}
 
-        أعد كتابة السيرة الذاتية بصيغة HTML فقط.
+        أعد كتابة السيرة الذاتية كنص منسق فقط.
         """
 
         st.info("جاري المعالجة عبر Groq…")
@@ -79,14 +85,14 @@ if start:
             temperature=0.1,
         )
 
-        html_output = response.choices[0].message.content
+        final_cv_text = response.choices[0].message.content
 
         st.success("تم إنشاء السيرة الذاتية المحسّنة!")
 
-        st.subheader("HTML Preview")
-        st.code(html_output, language="html")
+        st.subheader("السيرة الذاتية بعد التحسين")
+        st.text_area("CV النهائي", final_cv_text, height=500)
 
-        pdf_bytes = html_to_pdf_bytes(html_output)
+        pdf_bytes = text_to_pdf_bytes(final_cv_text)
 
         st.download_button(
             label="تحميل ملف PDF النهائي",
