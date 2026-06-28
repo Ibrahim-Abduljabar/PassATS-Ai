@@ -5,14 +5,11 @@ import pdfplumber
 from groq import Groq
 from weasyprint import HTML
 
-
 client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
-
 
 def extract_pdf_text(file):
     with pdfplumber.open(file) as pdf:
         return "\n".join([page.extract_text() or "" for page in pdf.pages])
-
 
 def generate_pdf_from_text(text_content):
     html_template = f"""
@@ -51,12 +48,10 @@ def generate_pdf_from_text(text_content):
     with open(path, "rb") as f:
         return f.read()
 
-
 st.set_page_config(page_title="PassATS AI", layout="wide")
-st.title("PassATS AI — نظام تحسين السيرة الذاتية المتوافق مع ATS")
+st.title("PassATS AI — ATS CV Optimizer")
 
 uploaded_pdf = st.file_uploader("ارفع السيرة الذاتية (PDF فقط)", type=["pdf"])
-
 
 if "job_desc_list" not in st.session_state:
     st.session_state.job_desc_list = [""]
@@ -74,9 +69,7 @@ for i in range(len(st.session_state.job_desc_list)):
 
 st.button("➕ أضف وصف وظيفي آخر", on_click=add_job_desc)
 
-
 start = st.button("ابدأ تحسين السيرة الذاتية الآن")
-
 
 if start:
     if not uploaded_pdf:
@@ -85,20 +78,18 @@ if start:
         cv_text = extract_pdf_text(uploaded_pdf)
         job_descriptions = "\n\n---\n\n".join(st.session_state.job_desc_list)
 
-
         system_prompt = """
         أنت خبير عالمي في كتابة السير الذاتية المتوافقة مع ATS.
 
-        قواعد التعامل مع اللغات:
-        - إذا كان النص الأصلي يحتوي على لغتين (عربي + إنجليزي)، حافظ على كل لغة كما هي.
+        قواعد اللغة:
+        - إذا كان القسم عربي، اكتبه عربي طبيعي بدون تشنج.
+        - إذا كان القسم إنجليزي، اكتبه إنجليزي طبيعي بدون تشنج.
         - ممنوع دمج لغتين داخل نفس الجملة.
-        - ممنوع الترجمة إلا إذا كان النص غير مفهوم.
-        - اكتب كل قسم باللغة التي جاء بها في النص الأصلي.
-        - قسم "اللغات" فقط يحتوي لغات متعددة، وكل لغة في سطر مستقل.
-        - المصطلحات التقنية الإنجليزية مسموح بها داخل الأقسام الإنجليزية فقط.
-
-        استخدم الهيكل التالي فقط:
-
+        - ممنوع الترجمة إلا إذا كان النص الأصلي غير مفهوم.
+        - حافظ على اللغة الأصلية لكل قسم كما جاءت.
+        - المصطلحات التقنية الإنجليزية تبقى كما هي داخل الأقسام الإنجليزية.
+        - لا تغيّر لغة القسم إلا إذا طلب المستخدم ذلك.
+        الهيكل المطلوب:
         1) المعلومات الشخصية
         2) الملخص المهني
         3) المهارات التقنية
@@ -122,7 +113,7 @@ if start:
         الأوصاف الوظيفية:
         {job_descriptions}
 
-        أعد كتابة السيرة الذاتية مع الحفاظ على اللغة الأصلية لكل جزء.
+        أعد كتابة السيرة الذاتية مع الحفاظ على اللغة الأصلية لكل قسم.
         """
 
         st.info("جاري تحسين السيرة الذاتية عبر Groq…")
@@ -141,7 +132,6 @@ if start:
         st.success("تم إنشاء السيرة الذاتية المحسّنة!")
         st.subheader("السيرة الذاتية بعد التحسين")
         st.text_area("CV النهائي", final_cv_text, height=500)
-
 
         pdf_bytes = generate_pdf_from_text(final_cv_text)
 
