@@ -3,18 +3,17 @@ import os
 import tempfile
 import pdfplumber
 from groq import Groq
-from xhtml2pdf import pisa
+from weasyprint import HTML
 
 client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
 def extract_pdf_text(file):
     with pdfplumber.open(file) as pdf:
-        text = "\n".join([page.extract_text() or "" for page in pdf.pages])
-    return text
+        return "\n".join([page.extract_text() or "" for page in pdf.pages])
 
-def html_to_pdf(html):
+def html_to_pdf_bytes(html_content):
     with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
-        pisa.CreatePDF(html, dest=tmp)
+        HTML(string=html_content).write_pdf(tmp.name)
         path = tmp.name
     with open(path, "rb") as f:
         return f.read()
@@ -30,7 +29,7 @@ if "job_desc_list" not in st.session_state:
 def add_job_desc():
     st.session_state.job_desc_list.append("")
 
-st.subheader("أدخل الأوصاف الوظيفية")
+st.subheader("الأوصاف الوظيفية")
 for i in range(len(st.session_state.job_desc_list)):
     st.session_state.job_desc_list[i] = st.text_area(
         f"الوصف الوظيفي رقم {i+1}",
@@ -51,7 +50,7 @@ if start:
 
         system_prompt = """
         أنت خبير عالمي في كتابة السير الذاتية المتوافقة مع ATS.
-        أعد صياغة السيرة الذاتية لتتوافق مع جميع الأوصاف الوظيفية المرفقة.
+        أعد صياغة السيرة الذاتية لتتوافق مع جميع الأوصاف الوظيفية.
         أعد الإخراج بصيغة HTML فقط.
         استخدم Inline CSS فقط.
         لا تستخدم Markdown.
@@ -77,7 +76,7 @@ if start:
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
             ],
-            temperature=0.15,
+            temperature=0.1,
         )
 
         html_output = response.choices[0].message.content
@@ -87,7 +86,7 @@ if start:
         st.subheader("HTML Preview")
         st.code(html_output, language="html")
 
-        pdf_bytes = html_to_pdf(html_output)
+        pdf_bytes = html_to_pdf_bytes(html_output)
 
         st.download_button(
             label="تحميل ملف PDF النهائي",
