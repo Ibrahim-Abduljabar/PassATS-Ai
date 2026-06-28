@@ -5,12 +5,15 @@ import pdfplumber
 from groq import Groq
 from weasyprint import HTML
 
+# إعداد عميل Groq
 client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
+# استخراج النص من PDF
 def extract_pdf_text(file):
     with pdfplumber.open(file) as pdf:
         return "\n".join([page.extract_text() or "" for page in pdf.pages])
 
+# تحويل النص إلى PDF منسق RTL
 def generate_pdf_from_text(text_content):
     html_template = f"""
     <html>
@@ -40,11 +43,13 @@ def generate_pdf_from_text(text_content):
     with open(path, "rb") as f:
         return f.read()
 
+# واجهة الموقع
 st.set_page_config(page_title="PassATS AI", layout="wide")
 st.title("PassATS AI — نظام تحسين السيرة الذاتية المتوافق مع ATS")
 
 uploaded_pdf = st.file_uploader("ارفع السيرة الذاتية (PDF فقط)", type=["pdf"])
 
+# دعم تعدد الأوصاف الوظيفية
 if "job_desc_list" not in st.session_state:
     st.session_state.job_desc_list = [""]
 
@@ -61,6 +66,7 @@ for i in range(len(st.session_state.job_desc_list)):
 
 st.button("➕ أضف وصف وظيفي آخر", on_click=add_job_desc)
 
+# زر البدء
 start = st.button("ابدأ تحسين السيرة الذاتية الآن")
 
 if start:
@@ -70,12 +76,12 @@ if start:
         cv_text = extract_pdf_text(uploaded_pdf)
         job_descriptions = "\n\n---\n\n".join(st.session_state.job_desc_list)
 
+        # البرومبت النهائي
         system_prompt = """
         أنت خبير عالمي في كتابة السير الذاتية المتوافقة مع ATS.
 
         قواعد اللغة:
-        - اكتب العربي بشكل طبيعي وواضح بدون أي تكسير أو انعكاس.
-        - اكتب العربي من اليمين إلى اليسار بشكل صحيح.
+        - اكتب العربي بشكل طبيعي وواضح قدر استطاعتك.
         - إذا كان القسم إنجليزي، اكتبه إنجليزي طبيعي.
         - ممنوع دمج لغتين داخل نفس الجملة.
         - إذا وجدت كلمات عربية وإنجليزية متجاورة، افصلها إلى سطرين.
@@ -111,7 +117,7 @@ if start:
         st.info("جاري تحسين السيرة الذاتية عبر Groq…")
 
         response = client.chat.completions.create(
-            model="gemma-2-27b-it",    
+            model="llama-3.1-8b-instant",   # ← الموديل المجاني الوحيد
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
