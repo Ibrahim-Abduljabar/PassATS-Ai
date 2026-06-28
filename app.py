@@ -11,17 +11,43 @@ def extract_pdf_text(file):
     with pdfplumber.open(file) as pdf:
         return "\n".join([page.extract_text() or "" for page in pdf.pages])
 
-def text_to_pdf_bytes(text_content):
+def generate_pdf_from_text(text_content):
     html_template = f"""
     <html>
-    <body style="font-family: Arial; line-height: 1.6; font-size: 15px; direction: rtl; text-align: right;">
-    <pre style="white-space: pre-wrap;">{text_content}</pre>
+    <head>
+        <meta charset="UTF-8">
+        <style>
+            body {{
+                font-family: Arial, sans-serif;
+                direction: rtl;
+                text-align: right;
+                line-height: 1.7;
+                font-size: 15px;
+                padding: 25px;
+            }}
+            h2 {{
+                margin-top: 25px;
+                margin-bottom: 10px;
+                font-size: 20px;
+            }}
+            p {{
+                margin-bottom: 12px;
+            }}
+            ul {{
+                margin-bottom: 15px;
+            }}
+        </style>
+    </head>
+    <body>
+        <pre style="white-space: pre-wrap;">{text_content}</pre>
     </body>
     </html>
     """
+
     with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
         HTML(string=html_template).write_pdf(tmp.name)
         path = tmp.name
+
     with open(path, "rb") as f:
         return f.read()
 
@@ -92,7 +118,7 @@ if start:
         st.subheader("السيرة الذاتية بعد التحسين")
         st.text_area("CV النهائي", final_cv_text, height=500)
 
-        pdf_bytes = text_to_pdf_bytes(final_cv_text)
+        pdf_bytes = generate_pdf_from_text(final_cv_text)
 
         st.download_button(
             label="تحميل ملف PDF النهائي",
