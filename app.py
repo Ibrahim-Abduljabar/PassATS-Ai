@@ -5,15 +5,12 @@ import pdfplumber
 from groq import Groq
 from weasyprint import HTML
 
-# إعداد عميل Groq
 client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
-# استخراج النص من PDF
 def extract_pdf_text(file):
     with pdfplumber.open(file) as pdf:
         return "\n".join([page.extract_text() or "" for page in pdf.pages])
 
-# تحويل النص إلى PDF منسق RTL
 def generate_pdf_from_text(text_content):
     html_template = f"""
     <html>
@@ -43,13 +40,11 @@ def generate_pdf_from_text(text_content):
     with open(path, "rb") as f:
         return f.read()
 
-# واجهة الموقع
 st.set_page_config(page_title="PassATS AI", layout="wide")
 st.title("PassATS AI — نظام تحسين السيرة الذاتية المتوافق مع ATS")
 
 uploaded_pdf = st.file_uploader("ارفع السيرة الذاتية (PDF فقط)", type=["pdf"])
 
-# دعم تعدد الأوصاف الوظيفية
 if "job_desc_list" not in st.session_state:
     st.session_state.job_desc_list = [""]
 
@@ -66,7 +61,6 @@ for i in range(len(st.session_state.job_desc_list)):
 
 st.button("➕ أضف وصف وظيفي آخر", on_click=add_job_desc)
 
-# زر البدء
 start = st.button("ابدأ تحسين السيرة الذاتية الآن")
 
 if start:
@@ -76,7 +70,6 @@ if start:
         cv_text = extract_pdf_text(uploaded_pdf)
         job_descriptions = "\n\n---\n\n".join(st.session_state.job_desc_list)
 
-        # البرومبت النهائي
         system_prompt = """
         أنت خبير عالمي في كتابة السير الذاتية المتوافقة مع ATS.
 
@@ -118,7 +111,7 @@ if start:
         st.info("جاري تحسين السيرة الذاتية عبر Groq…")
 
         response = client.chat.completions.create(
-            model="openai/gpt-oss-120b",   # ← أقوى موديل في Groq Cloud
+            model="openai/gpt-oss-120b",  
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
