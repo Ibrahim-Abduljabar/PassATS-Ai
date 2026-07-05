@@ -4,7 +4,10 @@ import tempfile
 import pdfplumber
 from groq import Groq
 from weasyprint import HTML
+from logsnag import LogSnag
 
+log_client = LogSnag(token=st.secrets["LOGSNAG_TOKEN"], project="passats-ai")
+log_client.track(channel="visits", event="New Visit")
 client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
 def extract_pdf_text(file):
