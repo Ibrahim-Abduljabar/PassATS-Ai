@@ -3,3 +3,4 @@ groq
 python-dotenv
 pdfplumber
 weasyprint
+logsnag
