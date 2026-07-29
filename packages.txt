@@ -1,5 +1,0 @@
-build-essential
-libffi-dev
-libglib2.0-dev
-libpango1.0-dev
-shared-mime-info
